@@ -1,0 +1,4 @@
+import { PageHeader } from "../../../components/PageHeader";
+export default function RegisterCompanyPage() {
+  return <main className="container page-wrap"><PageHeader title="Register company" subtitle="Create a company account for maritime hiring." /><div className="card" style={{ maxWidth: "860px" }}><div className="form-grid"><div className="field"><label>Company name</label><input className="input" placeholder="Brave Marine Group" /></div><div className="field"><label>Official email</label><input className="input" placeholder="hr@company.com" /></div><div className="field"><label>Phone</label><input className="input" placeholder="+971 ..." /></div><div className="field"><label>Country</label><input className="input" placeholder="UAE" /></div></div><div className="actions"><button className="button primary">Create company account</button></div></div></main>;
+}

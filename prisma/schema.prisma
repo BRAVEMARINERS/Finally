@@ -1,0 +1,395 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SEAFARER
+  COMPANY
+  ADMIN
+}
+
+enum CompanyType {
+  SHIP_OWNER
+  SHIP_MANAGER
+  MANNING_AGENCY
+  CREWING_COMPANY
+  OFFSHORE_EMPLOYER
+  CRUISE_OPERATOR
+}
+
+enum CompanyMemberRole {
+  OWNER
+  ADMIN
+  RECRUITER
+  VIEWER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AvailabilityStatus {
+  AVAILABLE_NOW
+  AVAILABLE_SOON
+  NOT_AVAILABLE
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  VIEWED
+  SHORTLISTED
+  INTERVIEW
+  REJECTED
+  HIRED
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DocumentType {
+  PASSPORT
+  SEAMAN_BOOK
+  MEDICAL_CERTIFICATE
+  VISA
+  STCW_BASIC_SAFETY
+  ADVANCED_FIRE_FIGHTING
+  PROFICIENCY_SURVIVAL_CRAFT
+  MEDICAL_FIRST_AID
+  SECURITY_AWARENESS
+  GMDSS
+  ECDIS
+  TANKER_ENDORSEMENT
+  DP
+  COC
+  COP
+  OTHER
+}
+
+enum AlertSeverity {
+  VALID
+  EXPIRING_90
+  EXPIRING_60
+  EXPIRING_30
+  EXPIRING_7
+  EXPIRED
+  MISSING
+  PENDING_VERIFICATION
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  PROFILE_VIEWED
+  APPLICATION_SUBMITTED
+  APPLICATION_STATUS_CHANGED
+  JOB_MATCH
+  DOCUMENT_EXPIRY
+  COMPANY_ACTION
+  SYSTEM
+}
+
+enum AuditAction {
+  USER_LOGIN
+  USER_LOGOUT
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  EMAIL_VERIFIED
+  COMPANY_CREATED
+  COMPANY_UPDATED
+  COMPANY_VERIFIED
+  COMPANY_REJECTED
+  COMPANY_MEMBER_INVITED
+  COMPANY_MEMBER_UPDATED
+  COMPANY_MEMBER_REMOVED
+  JOB_CREATED
+  JOB_UPDATED
+  JOB_DELETED
+  JOB_STATUS_CHANGED
+  APPLICATION_CREATED
+  APPLICATION_STATUS_CHANGED
+  APPLICATION_WITHDRAWN
+  DOCUMENT_UPLOADED
+  DOCUMENT_UPDATED
+  DOCUMENT_DELETED
+  DOCUMENT_STATUS_CHANGED
+  MESSAGE_SENT
+}
+
+model User {
+  id                       String                     @id @default(cuid())
+  email                    String                     @unique
+  passwordHash             String
+  role                     UserRole
+  fullName                 String
+  phone                    String?
+  country                  String?
+  isActive                 Boolean                    @default(true)
+  emailVerified            Boolean                    @default(false)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  deletedAt                DateTime?
+  seafarerProfile          SeafarerProfile?
+  companyMemberships       CompanyMember[]
+  sentMessages             Message[]                  @relation("SentMessages")
+  notifications            Notification[]
+  conversationParticipants ConversationParticipant[]
+  refreshTokens            RefreshToken[]
+  passwordResets           PasswordReset[]
+  emailVerification        EmailVerification?
+  createdJobs              Job[]                      @relation("JobCreator")
+  auditLogs                AuditLog[]
+}
+
+model SeafarerProfile {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentRank          String?
+  department           String?
+  nationality          String?
+  currentLocation      String?
+  yearsOfExperience    Int?
+  summary              String?
+  expectedSalary       Int?
+  availabilityStatus   AvailabilityStatus @default(NOT_AVAILABLE)
+  availableFrom        DateTime?
+  preferredVesselTypes String[]
+  languages            String[]
+  isProfileComplete    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  experiences          SeaExperience[]
+  documents            Document[]
+  applications         Application[]
+  generatedCvs         GeneratedCv[]
+}
+
+model SeaExperience {
+  id                String          @id @default(cuid())
+  seafarerProfileId String
+  seafarerProfile   SeafarerProfile @relation(fields: [seafarerProfileId], references: [id], onDelete: Cascade)
+  companyName       String
+  vesselName        String?
+  vesselType        String?
+  rankHeld          String
+  startDate         DateTime
+  endDate           DateTime?
+  seaMonths         Int?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model Company {
+  id                 String             @id @default(cuid())
+  name               String
+  slug               String             @unique
+  officialEmail      String             @unique
+  contactEmail       String?
+  phone              String?
+  country            String?
+  website            String?
+  description        String?
+  companyType        CompanyType?
+  verificationStatus VerificationStatus @default(PENDING)
+  logoUrl            String?
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+  members            CompanyMember[]
+  jobs               Job[]
+  auditLogs          AuditLog[]
+}
+
+model CompanyMember {
+  id         String            @id @default(cuid())
+  companyId  String
+  company    Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       CompanyMemberRole @default(RECRUITER)
+  title      String?
+  joinedAt   DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  @@unique([companyId, userId])
+}
+
+model Job {
+  id               String    @id @default(cuid())
+  companyId        String
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title            String
+  rankRequired     String
+  vesselType       String?
+  joinLocation     String?
+  joinDate         DateTime?
+  contractDuration String?
+  salaryMin        Int?
+  salaryMax        Int?
+  description      String?
+  requirements     String?
+  status           JobStatus @default(DRAFT)
+  isUrgent         Boolean   @default(false)
+  createdByUserId  String?
+  createdByUser    User?     @relation("JobCreator", fields: [createdByUserId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+  applications     Application[]
+  auditLogs        AuditLog[]
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  jobId             String
+  job               Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  seafarerProfileId String
+  seafarerProfile   SeafarerProfile   @relation(fields: [seafarerProfileId], references: [id], onDelete: Cascade)
+  status            ApplicationStatus @default(APPLIED)
+  coverNote         String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  auditLogs         AuditLog[]
+  @@unique([jobId, seafarerProfileId])
+}
+
+model Document {
+  id                String          @id @default(cuid())
+  seafarerProfileId String
+  seafarerProfile   SeafarerProfile @relation(fields: [seafarerProfileId], references: [id], onDelete: Cascade)
+  type              DocumentType
+  documentNumber    String?
+  storageKey        String?
+  issueDate         DateTime?
+  expiryDate        DateTime?
+  status            DocumentStatus  @default(PENDING)
+  alertSeverity     AlertSeverity   @default(VALID)
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+  alertDispatches   DocumentAlertDispatch[]
+  auditLogs         AuditLog[]
+}
+
+model DocumentAlertDispatch {
+  id          String        @id @default(cuid())
+  documentId  String
+  document    Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  severity    AlertSeverity
+  sentAt      DateTime      @default(now())
+  @@unique([documentId, severity])
+}
+
+model GeneratedCv {
+  id                String          @id @default(cuid())
+  seafarerProfileId String
+  seafarerProfile   SeafarerProfile @relation(fields: [seafarerProfileId], references: [id], onDelete: Cascade)
+  language          String          @default("en")
+  contentJson       Json
+  pdfStorageKey     String?
+  createdAt         DateTime        @default(now())
+}
+
+model Conversation {
+  id           String                    @id @default(cuid())
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime     @default(now())
+  auditLogs      AuditLog[]
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  type      NotificationType
+  metadata  Json?
+  createdAt DateTime         @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id            String       @id @default(cuid())
+  actorUserId   String?
+  actorUser     User?        @relation(fields: [actorUserId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  jobId         String?
+  job           Job?         @relation(fields: [jobId], references: [id])
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id])
+  documentId    String?
+  document      Document?    @relation(fields: [documentId], references: [id])
+  messageId     String?
+  message       Message?     @relation(fields: [messageId], references: [id])
+  action        AuditAction
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+}

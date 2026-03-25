@@ -1,0 +1,6 @@
+import { Sidebar } from "../../../../components/Sidebar";
+import { PageHeader } from "../../../../components/PageHeader";
+const links = [{ href: "/company/dashboard", label: "Dashboard" }, { href: "/company/profile", label: "Profile" }, { href: "/company/members", label: "Members" }, { href: "/company/jobs", label: "Jobs" }, { href: "/company/jobs/new", label: "Post Job" }, { href: "/company/candidates", label: "Candidates" }, { href: "/company/applicants", label: "Applicants" }, { href: "/company/messages", label: "Messages" }];
+export default function CompanyNewJobPage() {
+  return <main className="container dashboard"><Sidebar title="Company" links={links} /><section><PageHeader title="Post a job" subtitle="Create a new vacancy for maritime talent." /><div className="card"><div className="form-grid"><div className="field"><label>Job title</label><input className="input" placeholder="Chief Officer" /></div><div className="field"><label>Rank required</label><input className="input" placeholder="Chief Officer" /></div><div className="field"><label>Vessel type</label><input className="input" placeholder="Oil Tanker" /></div><div className="field"><label>Join location</label><input className="input" placeholder="Singapore" /></div></div><div className="actions"><button className="button primary">Publish job</button></div></div></section></main>;
+}
